@@ -1,0 +1,45 @@
+{
+  "name": "webhookvault",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "engines": { "node": "^24.0.0" },
+  "scripts": {
+    "local:setup": "node scripts/setup.mjs",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "api": "tsx server/main.ts api",
+    "worker": "tsx server/main.ts worker",
+    "receiver": "tsx server/main.ts receiver",
+    "dev": "tsx scripts/run.ts",
+    "start": "tsx scripts/run.ts --production",
+    "typecheck": "next typegen dashboard && tsc --noEmit",
+    "build": "next build dashboard",
+    "test": "vitest run test/unit.test.ts",
+    "test:integration": "vitest run test/integration.test.ts",
+    "test:browser": "playwright test",
+    "scenarios": "tsx scripts/scenarios.ts"
+  },
+  "dependencies": {
+    "@fastify/rate-limit": "11.3.0",
+    "fastify": "5.12.8",
+    "lucide-react": "1.77.0",
+    "next": "16.4.6",
+    "pg": "8.23.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "tsx": "4.23.15",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.1",
+    "@types/node": "^24.0.0",
+    "@types/pg": "8.23.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "typescript": "7.0.2",
+    "vitest": "5.1.1"
+  }
+}

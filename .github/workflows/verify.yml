@@ -1,0 +1,58 @@
+name: Verify
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install dependencies and audit
+        run: |
+          mkdir -p evidence/logs
+          npm ci 2>&1 | tee evidence/logs/install.log
+          npm audit --audit-level=moderate 2>&1 | tee evidence/logs/npm-audit.log
+      - name: Start isolated PostgreSQL
+        run: |
+          npm run local:setup
+          npm run db:up
+          npm run db:migrate
+      - name: TypeScript
+        run: npm run typecheck 2>&1 | tee evidence/logs/typecheck.log
+      - name: Unit tests
+        run: npm test -- --reporter=verbose 2>&1 | tee evidence/logs/unit.log
+      - name: PostgreSQL integration tests
+        run: npm run test:integration -- --reporter=verbose 2>&1 | tee evidence/logs/integration.log
+      - name: Seven live scenarios
+        run: npm run scenarios 2>&1 | tee evidence/logs/scenarios.log
+      - name: Production build
+        run: npm run build 2>&1 | tee evidence/logs/build.log
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Browser tests
+        run: npm run test:browser 2>&1 | tee evidence/logs/browser.log
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: webhookvault-evidence
+          path: evidence/
+          if-no-files-found: warn

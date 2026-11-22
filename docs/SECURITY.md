@@ -1,0 +1,14 @@
+# Security
+
+WebhookVault is designed for trusted operators in a local synthetic laboratory.
+
+- **Ingress.** The HTTP body limit is 64 KiB. HMAC-SHA256 authenticates `timestamp + "." + rawBody` with a generated 32-byte key. The API expects `x-vault-timestamp` in Unix seconds and `x-vault-signature` in the form `v1=<lowercase hexadecimal HMAC>`. Time tolerance is 300 seconds in either direction. Comparison is timing-safe after checking byte lengths.
+- **Inbound replay.** Old signatures are rejected. Within the allowed signing window, the database unique constraint on source and provider event ID suppresses duplicate effects. Resubmitting the same ID with altered signed bytes produces HTTP 409. The signer controls the provider ID and has authority to submit new synthetic events.
+- **Redaction.** The API stores a SHA-256 digest, normalized synthetic processing fields, and fixed diagnostic codes. The original request body, unknown fields, signatures, and request headers are excluded from storage and exports. Exports omit the stream name, value, operator-entered audit reason, credential data, and lease tokens. Use synthetic identifiers and reasons. Hashes and identifiers can still reveal correlation or low-entropy data.
+- **Database isolation.** Compose publishes PostgreSQL on loopback. Migration alone uses the bootstrap administrator. Dedicated API, worker, and receiver roles use different generated passwords and are granted only the operations they need. Runtime roles have no DDL, role management, or delete privileges. Worker and receiver cannot change event provenance. Report reads are local and read-only.
+- **Capacity limits.** Fastify limits ingestion to 90 per minute per IP, replay to 15 per minute, and other routes to 300 per minute. Proxy forwarding headers are untrusted. Worker allocation is capped at four active jobs across worker processes. Jobs have bounded leases and retry budgets.
+- **Egress.** The receiver URL uses the literal IPv4 loopback address and a validated configured port, with a fixed path, request timeout, and redirects disabled. Event fields cannot select a destination. The receiver authenticates the worker bearer token and checks the current lease. All demo services bind to loopback. The API and dashboard reject non-loopback Hosts, and browser mutation is same-origin.
+- **Replay approval.** The operator credential, explicit approval, and reason are checked before a transaction reserves the single replay. The token is entered per approval and held in component memory only. The audit records the shared local operator identity.
+- **Secrets and releases.** Setup generates local secrets in a mode-0600 ignored file. CI generates its own credentials and has read-only repository permissions. CI runs tests and a build. The workflow contains zero deployment steps and the live Devin adapter is disabled.
+
+Review [current limitations](LIMITATIONS.md) before reusing any component beyond the lab.

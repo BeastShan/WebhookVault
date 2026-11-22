@@ -1,0 +1,19 @@
+name: webhookvault
+services:
+  postgres:
+    image: postgres:18.4
+    environment:
+      POSTGRES_DB: webhookvault
+      POSTGRES_USER: vault_admin
+      POSTGRES_PASSWORD: ${VAULT_DB_PASSWORD:?Run npm run local:setup}
+    ports:
+      - "127.0.0.1:${VAULT_DB_PORT:-55432}:5432"
+    volumes:
+      - vault-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vault_admin -d webhookvault"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+volumes:
+  vault-data:
